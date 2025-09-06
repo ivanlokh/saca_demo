@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор зарплати - Програма-баланс</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-calculator"></i> Калькулятор зарплати</h1>
+            <p>Програма-баланс для справедливих розрахунків заробітної плати</p>
+        </header>
+
+        <div class="main-content">
+            <div class="form-section">
+                <h2><i class="fas fa-edit"></i> Введення даних</h2>
+                
+                <form id="salaryForm" class="salary-form">
+                    <div class="form-group">
+                        <label for="currency">Валюта:</label>
+                        <select id="currency" name="currency" required>
+                            <option value="UAH">₴ Гривня (UAH)</option>
+                            <option value="EUR">€ Євро (EUR)</option>
+                            <option value="USD">$ Долар США (USD)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="salaryCategory">Категорія зарплати:</label>
+                        <select id="salaryCategory" name="salaryCategory" required>
+                            <option value="minimum">Мінімальна зарплата</option>
+                            <option value="average">Середня зарплата</option>
+                            <option value="high">Висока зарплата</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="currentSalary">Поточна зарплата:</label>
+                        <input type="number" id="currentSalary" name="currentSalary" 
+                               placeholder="Введіть поточну зарплату" required min="0" step="0.01">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="experienceYears">Років досвіду роботи:</label>
+                        <input type="number" id="experienceYears" name="experienceYears" 
+                               placeholder="Введіть кількість років" required min="0" max="50">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="annualGrowth">Річний ріст зарплати (%):</label>
+                        <input type="number" id="annualGrowth" name="annualGrowth" 
+                               placeholder="Введіть відсоток росту" required min="0" max="100" step="0.1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="projectionYears">Років для прогнозу:</label>
+                        <input type="number" id="projectionYears" name="projectionYears" 
+                               placeholder="Скільки років прогнозувати" required min="1" max="20" value="5">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bonusPercentage">Відсоток премії:</label>
+                        <input type="number" id="bonusPercentage" name="bonusPercentage" 
+                               placeholder="Відсоток премії" min="0" max="100" step="0.1" value="0">
+                    </div>
+
+                    <button type="submit" class="calculate-btn">
+                        <i class="fas fa-chart-line"></i> Розрахувати баланс
+                    </button>
+                </form>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h2><i class="fas fa-chart-bar"></i> Результати розрахунків</h2>
+                
+                <div class="summary-cards">
+                    <div class="card">
+                        <div class="card-icon">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Поточна зарплата</h3>
+                            <p class="card-value" id="currentSalaryDisplay">-</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-icon">
+                            <i class="fas fa-trending-up"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Прогнозована зарплата</h3>
+                            <p class="card-value" id="projectedSalaryDisplay">-</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Загальний ріст</h3>
+                            <p class="card-value" id="totalGrowthDisplay">-</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-icon">
+                            <i class="fas fa-gift"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Загальна премія</h3>
+                            <p class="card-value" id="totalBonusDisplay">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="projection-table">
+                    <h3><i class="fas fa-table"></i> Детальний прогноз по роках</h3>
+                    <div class="table-container">
+                        <table id="projectionTable">
+                            <thead>
+                                <tr>
+                                    <th>Рік</th>
+                                    <th>Зарплата</th>
+                                    <th>Премія</th>
+                                    <th>Загальний дохід</th>
+                                    <th>Ріст від попереднього року</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projectionTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-area"></i> Графік росту зарплати</h3>
+                    <canvas id="salaryChart" width="800" height="400"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>&copy; 2025 Калькулятор зарплати. Створено для справедливих розрахунків заробітної плати.</p>
+            <p><strong>Створено <a href="#" style="color: white; text-decoration: underline;">Terkonix</a></strong></p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

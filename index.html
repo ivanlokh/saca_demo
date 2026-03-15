@@ -1,24 +1,38 @@
-ß<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="uk">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Калькулятор зарплати - Програма-баланс</title>
+    <link rel="icon" href="favicon.png" type="image/png">
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
+
 <body>
     <div class="container">
         <header class="header">
-            <h1><i class="fas fa-calculator"></i> Калькулятор зарплати</h1>
-            <p>Програма-баланс для справедливих розрахунків заробітної плати</p>
+            <div class="header-content"
+                style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%;">
+                <div style="flex: 1;"></div>
+                <div style="text-align: center;">
+                    <h1><i class="fas fa-calculator"></i> Калькулятор зарплати</h1>
+                    <p>Програма-баланс для справедливих розрахунків заробітної плати</p>
+                </div>
+                <div style="flex: 1; display: flex; justify-content: flex-end;">
+                    <button id="themeToggle" class="theme-btn" title="Перемикнути тему">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
         </header>
 
         <div class="main-content">
             <div class="form-section">
                 <h2><i class="fas fa-edit"></i> Введення даних</h2>
-                
+
                 <form id="salaryForm" class="salary-form">
                     <div class="form-group">
                         <label for="currency">Валюта:</label>
@@ -39,33 +53,42 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="taxType">Оподаткування:</label>
+                        <select id="taxType" name="taxType" required>
+                            <option value="gross">Без податків (Gross)</option>
+                            <option value="fop">ФОП 3 група (5% + ЄСВ)</option>
+                            <option value="official">Офіційне працевлаштування (ПДФО 18% + ВЗ 1.5%)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label for="currentSalary">Поточна зарплата:</label>
-                        <input type="number" id="currentSalary" name="currentSalary" 
-                               placeholder="Введіть поточну зарплату" required min="0" step="0.01">
+                        <input type="number" id="currentSalary" name="currentSalary"
+                            placeholder="Введіть поточну зарплату" required min="0" step="0.01">
                     </div>
 
                     <div class="form-group">
                         <label for="experienceYears">Років досвіду роботи:</label>
-                        <input type="number" id="experienceYears" name="experienceYears" 
-                               placeholder="Введіть кількість років" required min="0" max="50">
+                        <input type="number" id="experienceYears" name="experienceYears"
+                            placeholder="Введіть кількість років" required min="0" max="50">
                     </div>
 
                     <div class="form-group">
                         <label for="annualGrowth">Річний ріст зарплати (%):</label>
-                        <input type="number" id="annualGrowth" name="annualGrowth" 
-                               placeholder="Введіть відсоток росту" required min="0" max="100" step="0.1">
+                        <input type="number" id="annualGrowth" name="annualGrowth" placeholder="Введіть відсоток росту"
+                            required min="0" max="100" step="0.1">
                     </div>
 
                     <div class="form-group">
                         <label for="projectionYears">Років для прогнозу:</label>
-                        <input type="number" id="projectionYears" name="projectionYears" 
-                               placeholder="Скільки років прогнозувати" required min="1" max="20" value="5">
+                        <input type="number" id="projectionYears" name="projectionYears"
+                            placeholder="Скільки років прогнозувати" required min="1" max="20" value="5">
                     </div>
 
                     <div class="form-group">
                         <label for="bonusPercentage">Відсоток премії:</label>
-                        <input type="number" id="bonusPercentage" name="bonusPercentage" 
-                               placeholder="Відсоток премії" min="0" max="100" step="0.1" value="0">
+                        <input type="number" id="bonusPercentage" name="bonusPercentage" placeholder="Відсоток премії"
+                            min="0" max="100" step="0.1" value="0">
                     </div>
 
                     <button type="submit" class="calculate-btn">
@@ -76,7 +99,7 @@
 
             <div class="results-section" id="resultsSection" style="display: none;">
                 <h2><i class="fas fa-chart-bar"></i> Результати розрахунків</h2>
-                
+
                 <div class="summary-cards">
                     <div class="card">
                         <div class="card-icon">
@@ -146,7 +169,7 @@
         </div>
 
         <footer class="footer">
-            <p>&copy; 2025 Калькулятор зарплати. Створено для справедливих розрахунків заробітної плати.</p>
+            <p>&copy; 2026 Калькулятор зарплати. Створено для справедливих розрахунків заробітної плати.</p>
             <p><strong>Створено <a href="#" style="color: white; text-decoration: underline;">Terkonix</a></strong></p>
         </footer>
     </div>
@@ -154,4 +177,5 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
+
 </html>

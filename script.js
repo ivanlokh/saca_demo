@@ -166,7 +166,8 @@ class App {
             experienceYears: document.getElementById('experienceYears'),
             annualGrowth: document.getElementById('annualGrowth'),
             projectionYears: document.getElementById('projectionYears'),
-            bonusPercentage: document.getElementById('bonusPercentage')
+            bonusPercentage: document.getElementById('bonusPercentage'),
+            inflationRate: document.getElementById('inflationRate')
         };
         
         this.init();
@@ -269,7 +270,8 @@ class App {
             experienceYears: parseInt(this.elements.experienceYears.value),
             annualGrowth: parseFloat(this.elements.annualGrowth.value),
             projectionYears: parseInt(this.elements.projectionYears.value),
-            bonusPercentage: parseFloat(this.elements.bonusPercentage.value) || 0
+            bonusPercentage: parseFloat(this.elements.bonusPercentage.value) || 0,
+            inflationRate: parseFloat(this.elements.inflationRate.value) || 0
         };
     }
 
@@ -316,8 +318,12 @@ class App {
         const bonusRate = data.bonusPercentage / 100;
         const currency = this.currencyManager.getCurrency(data.currency);
         
+        // Інфляція
+        const currentYear = new Date().getFullYear();
+        const inflationMultiplier = 1 - (data.inflationRate / 100);
+        
         for (let year = 0; year <= data.projectionYears; year++) {
-            const yearNumber = new Date().getFullYear() + year;
+            const yearNumber = currentYear + year;
             
             const grossBonus = currentGrossSalary * bonusRate;
             const grossTotalIncome = currentGrossSalary + grossBonus;
@@ -326,18 +332,20 @@ class App {
             const netBonus = TaxCalculator.calculateNet(grossBonus, data.taxType, currency.rate, data.currency);
             const netTotalIncome = TaxCalculator.calculateNet(grossTotalIncome, data.taxType, currency.rate, data.currency);
             
+            // Реальна вартість грошей (купівельна спроможність)
+            const realValue = netTotalIncome * Math.pow(inflationMultiplier, year);
+            
             results.push({
                 year: yearNumber,
                 grossSalary: currentGrossSalary,
                 salary: netSalary,
                 bonus: netBonus,
                 totalIncome: netTotalIncome,
+                realValue: realValue,
                 growthFromPrevious: year === 0 ? 0 : ((netSalary - results[year - 1].salary) / results[year - 1].salary * 100)
             });
             
-            if (year < data.projectionYears) {
-                currentGrossSalary = currentGrossSalary * (1 + annualGrowthRate);
-            }
+            currentGrossSalary = currentGrossSalary * (1 + annualGrowthRate);
         }
         
         return results;
@@ -389,6 +397,7 @@ class App {
                 <td>${this.formatCurrency(result.salary, currency)}</td>
                 <td>${this.formatCurrency(result.bonus, currency)}</td>
                 <td><strong>${this.formatCurrency(result.totalIncome, currency)}</strong></td>
+                <td style="color: #ffb347;"><strong>${this.formatCurrency(result.realValue, currency)}</strong></td>
                 <td class="${growthClass}">
                     ${result.growthFromPrevious > 0 ? '+' : ''}${result.growthFromPrevious.toFixed(1)}%
                 </td>
@@ -409,6 +418,7 @@ class App {
         const salaries = results.map(r => r.salary);
         const bonuses = results.map(r => r.bonus);
         const totalIncomes = results.map(r => r.totalIncome);
+        const realValues = results.map(r => r.realValue);
         
         this.salaryChart = new Chart(ctx, {
             type: 'line',
@@ -439,6 +449,16 @@ class App {
                         borderColor: '#ffb347',
                         backgroundColor: 'rgba(255, 179, 71, 0.1)',
                         borderWidth: 2,
+                        fill: false,
+                        tension: 0.4
+                    },
+                    {
+                        label: `Реальна вартість (після інфляції)`,
+                        data: realValues,
+                        borderColor: '#ffdd55',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
                         fill: false,
                         tension: 0.4
                     }
@@ -545,7 +565,46 @@ function printResults() {
     printWindow.print();
 }
 
+// PDF Export function
+function generatePDF() {
+    const element = document.getElementById('resultsSection');
+    const opt = {
+        margin:       0.5,
+        filename:     'salary_projection_report.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    
+    // Add temporary class for PDF styling if needed, or just let html2pdf handle it
+    const btn = document.getElementById('downloadPdfBtn');
+    btn.style.display = 'none'; // hide button in PDF
+
+    html2pdf().set(opt).from(element).save().then(() => {
+        btn.style.display = 'inline-block'; // restore button
+    });
+}
+
 // Initialize application
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new App();
+    
+    // Attach PDF export to the new button
+    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+    if(downloadPdfBtn) {
+        downloadPdfBtn.addEventListener('click', generatePDF);
+    }
+    
+    // Web App (PWA) ServiceWorker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                })
+                .catch(error => {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+        });
+    }
 });

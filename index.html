@@ -5,13 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Калькулятор зарплати - Програма-баланс</title>
+    <meta name="theme-color" content="#ff7e5f">
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="favicon.png">
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
 <body>
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
     <div class="container">
         <header class="header">
             <div class="header-content"
@@ -91,6 +101,11 @@
                             min="0" max="100" step="0.1" value="0">
                     </div>
 
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="inflationRate" title="Впливає на розрахунок 'Реальної вартості' грошей в майбутньому">Очікувана річна інфляція (%): <i class="fas fa-info-circle text-muted"></i></label>
+                        <input type="number" id="inflationRate" name="inflationRate" placeholder="Наприклад, 5" min="0" max="100" step="0.1" value="5">
+                    </div>
+
                     <button type="submit" class="calculate-btn">
                         <i class="fas fa-chart-line"></i> Розрахувати баланс
                     </button>
@@ -152,6 +167,7 @@
                                     <th>Зарплата</th>
                                     <th>Премія</th>
                                     <th>Загальний дохід</th>
+                                    <th>Реальна вартість (після інфляції)</th>
                                     <th>Ріст від попереднього року</th>
                                 </tr>
                             </thead>
@@ -165,6 +181,12 @@
                     <h3><i class="fas fa-chart-area"></i> Графік росту зарплати</h3>
                     <canvas id="salaryChart" width="800" height="400"></canvas>
                 </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button id="downloadPdfBtn" class="calculate-btn" style="width: auto; padding: 12px 30px;">
+                        <i class="fas fa-file-pdf"></i> Зберегти звіт у PDF
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -174,7 +196,6 @@
         </footer>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
 

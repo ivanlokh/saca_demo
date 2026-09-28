@@ -490,3 +490,99 @@ tr:hover {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Actions Panel & Export Buttons */
+.actions-panel {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.action-btn {
+    border: none;
+    padding: 12px 22px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn:active {
+    transform: translateY(0);
+}
+
+.btn-pdf {
+    background: var(--btn-gradient);
+    color: var(--btn-text);
+}
+
+.btn-csv {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+}
+
+.btn-csv:hover {
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+}
+
+.btn-print {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-print:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Print Media Styles */
+@media print {
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+    }
+    
+    .bg-blobs,
+    .form-section,
+    .actions-panel,
+    .theme-btn,
+    .footer {
+        display: none !important;
+    }
+    
+    .main-content {
+        display: block !important;
+        grid-template-columns: 1fr !important;
+    }
+    
+    .results-section {
+        display: block !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        background: transparent !important;
+    }
+    
+    table, th, td {
+        border: 1px solid #ddd !important;
+        color: #000000 !important;
+    }
+    
+    #salaryChart {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+}

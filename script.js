@@ -4,9 +4,9 @@
  */
 
 const SALARY_CATEGORIES = {
-    minimum: { name: 'Мінімальна зарплата', min: 6000, max: 12000, description: 'Початковий рівень, стажер' },
-    average: { name: 'Середня зарплата', min: 15000, max: 35000, description: 'Досвідчений спеціаліст' },
-    high: { name: 'Висока зарплата', min: 40000, max: 100000, description: 'Старший спеціаліст, керівник' }
+    minimum: { name: 'Мінімальна зарплата', min: 8000, max: 16000, description: 'Початковий рівень, стажер' },
+    average: { name: 'Середня зарплата', min: 16000, max: 45000, description: 'Досвідчений спеціаліст' },
+    high: { name: 'Висока зарплата', min: 45000, max: null, description: 'Старший спеціаліст, керівник' }
 };
 
 class StorageManager {
@@ -81,14 +81,18 @@ class CurrencyManager {
 }
 
 class TaxCalculator {
-    static calculateNet(grossIncome, taxType, currencyRate, currencyCode) {
+    static getEsvInCurrency(currencyRate, currencyCode) {
+        const esvUAH = 1760; // ЄСВ ~1760 UAH (22% від мінімальної заробітної плати 8000 UAH)
+        return (currencyCode === 'UAH') ? esvUAH : (esvUAH * currencyRate);
+    }
+
+    static calculateNet(grossIncome, taxType, currencyRate, currencyCode, includeFixedFees = true) {
         if (taxType === 'gross') return grossIncome;
         
         if (taxType === 'fop') {
-            const esvUAH = 1760; // ЄСВ ~1760 UAH (22% від мінімалки)
-            const esvCurrency = (currencyCode === 'UAH') ? esvUAH : (esvUAH * currencyRate);
-            const tax = (grossIncome * 0.05) + esvCurrency;
-            return Math.max(0, grossIncome - tax); 
+            const esv = includeFixedFees ? this.getEsvInCurrency(currencyRate, currencyCode) : 0;
+            const singleTax = grossIncome * 0.05; // 5% єдиний податок
+            return Math.max(0, grossIncome - singleTax - esv); 
         } else if (taxType === 'official') {
             const tax = grossIncome * 0.195; // 18% ПДФО + 1.5% ВЗ
             return Math.max(0, grossIncome - tax);
@@ -228,34 +232,33 @@ class App {
 
     updateSalarySuggestions() {
         const category = this.elements.salaryCategory.value;
-        const categoryData = SALARY_CATEGORIES[category];
+        const categoryData = SALARY_CATEGORIES[category] || SALARY_CATEGORIES.average;
         const currencyCode = this.elements.currency.value;
         const currency = this.currencyManager.getCurrency(currencyCode);
         
         const minInCurrency = Math.round(categoryData.min * currency.rate);
-        const maxInCurrency = Math.round(categoryData.max * currency.rate);
+        const maxInCurrency = categoryData.max ? Math.round(categoryData.max * currency.rate) : null;
         
-        this.elements.currentSalary.placeholder = `${categoryData.description} (${minInCurrency} - ${maxInCurrency} ${currency.symbol})`;
-        this.elements.currentSalary.min = minInCurrency;
-        this.elements.currentSalary.max = maxInCurrency;
+        if (maxInCurrency) {
+            this.elements.currentSalary.placeholder = `${categoryData.description} (~${minInCurrency.toLocaleString()} - ${maxInCurrency.toLocaleString()} ${currency.symbol})`;
+        } else {
+            this.elements.currentSalary.placeholder = `${categoryData.description} (від ${minInCurrency.toLocaleString()} ${currency.symbol})`;
+        }
+        
+        this.elements.currentSalary.min = "1";
+        this.elements.currentSalary.removeAttribute('max');
+        this.validateSalaryInput();
     }
 
     validateSalaryInput() {
         const value = parseFloat(this.elements.currentSalary.value);
-        if (isNaN(value)) return;
+        if (isNaN(value)) {
+            this.elements.currentSalary.setCustomValidity('');
+            return;
+        }
 
-        const category = this.elements.salaryCategory.value;
-        const categoryData = SALARY_CATEGORIES[category];
-        const currencyCode = this.elements.currency.value;
-        const currency = this.currencyManager.getCurrency(currencyCode);
-        
-        const minInCurrency = categoryData.min * currency.rate;
-        const maxInCurrency = categoryData.max * currency.rate;
-        
-        if (value < minInCurrency) {
-            this.elements.currentSalary.setCustomValidity(`Мінімальна зарплата для цієї категорії: ${Math.round(minInCurrency)} ${currency.symbol}`);
-        } else if (value > maxInCurrency) {
-            this.elements.currentSalary.setCustomValidity(`Максимальна зарплата для цієї категорії: ${Math.round(maxInCurrency)} ${currency.symbol}`);
+        if (value <= 0) {
+            this.elements.currentSalary.setCustomValidity('Сума зарплати повинна бути більше 0');
         } else {
             this.elements.currentSalary.setCustomValidity('');
         }
@@ -318,22 +321,24 @@ class App {
         const bonusRate = data.bonusPercentage / 100;
         const currency = this.currencyManager.getCurrency(data.currency);
         
-        // Інфляція
+        // Інфляція (економічна модель дисконтування)
         const currentYear = new Date().getFullYear();
-        const inflationMultiplier = 1 - (data.inflationRate / 100);
+        const inflationRate = (data.inflationRate || 0) / 100;
         
         for (let year = 0; year <= data.projectionYears; year++) {
             const yearNumber = currentYear + year;
             
             const grossBonus = currentGrossSalary * bonusRate;
-            const grossTotalIncome = currentGrossSalary + grossBonus;
             
-            const netSalary = TaxCalculator.calculateNet(currentGrossSalary, data.taxType, currency.rate, data.currency);
-            const netBonus = TaxCalculator.calculateNet(grossBonus, data.taxType, currency.rate, data.currency);
-            const netTotalIncome = TaxCalculator.calculateNet(grossTotalIncome, data.taxType, currency.rate, data.currency);
+            // ЄСВ утримується 1 раз з окладу (а не дублюється з премії)
+            const netSalary = TaxCalculator.calculateNet(currentGrossSalary, data.taxType, currency.rate, data.currency, true);
+            const netBonus = TaxCalculator.calculateNet(grossBonus, data.taxType, currency.rate, data.currency, false);
+            const netTotalIncome = netSalary + netBonus;
             
-            // Реальна вартість грошей (купівельна спроможність)
-            const realValue = netTotalIncome * Math.pow(inflationMultiplier, year);
+            // Реальна вартість грошей (купівельна спроможність через дисконтування)
+            const realValue = inflationRate > 0 
+                ? netTotalIncome / Math.pow(1 + inflationRate, year)
+                : netTotalIncome;
             
             results.push({
                 year: yearNumber,
@@ -420,6 +425,16 @@ class App {
         const totalIncomes = results.map(r => r.totalIncome);
         const realValues = results.map(r => r.realValue);
         
+        // Визначення поточної теми для стилізації графіка
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const textColor = isDark ? '#cbd5e1' : '#4a1f12';
+        const titleColor = isDark ? '#f8fafc' : '#1f0b02';
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+        const tooltipBg = isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+        const tooltipTitle = isDark ? '#f8fafc' : '#1f0b02';
+        const tooltipBody = isDark ? '#cbd5e1' : '#4a1f12';
+        const tooltipBorder = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 126, 95, 0.2)';
+        
         this.salaryChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -470,25 +485,60 @@ class App {
                 plugins: {
                     title: {
                         display: true,
-                        text: `Прогноз росту доходу (${data.taxType === 'gross' ? 'Брудними' : 'Чистими на руки'})`,
-                        font: { size: 16, weight: 'bold' }
+                        text: `Прогноз росту доходу (${data.taxType === 'gross' ? 'Брудними (Gross)' : 'Чистими на руки (Net)'})`,
+                        font: { size: 16, weight: 'bold', family: "'Inter', sans-serif" },
+                        color: titleColor,
+                        padding: { bottom: 15 }
                     },
                     legend: {
                         position: 'top',
-                        labels: { usePointStyle: true, padding: 20 }
+                        labels: { 
+                            usePointStyle: true, 
+                            padding: 18,
+                            color: textColor,
+                            font: { family: "'Inter', sans-serif", weight: '500' }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: tooltipBg,
+                        titleColor: tooltipTitle,
+                        bodyColor: tooltipBody,
+                        borderColor: tooltipBorder,
+                        borderWidth: 1,
+                        padding: 12,
+                        boxPadding: 6,
+                        usePointStyle: true,
+                        titleFont: { family: "'Inter', sans-serif", weight: 'bold' },
+                        bodyFont: { family: "'Inter', sans-serif" }
                     }
                 },
                 scales: {
                     x: {
-                        title: { display: true, text: 'Рік' },
-                        grid: { color: 'rgba(0,0,0,0.1)' }
+                        title: { 
+                            display: true, 
+                            text: 'Рік',
+                            color: textColor,
+                            font: { family: "'Inter', sans-serif", weight: '600' }
+                        },
+                        ticks: {
+                            color: textColor,
+                            font: { family: "'Inter', sans-serif" }
+                        },
+                        grid: { color: gridColor }
                     },
                     y: {
-                        title: { display: true, text: `Сума (${currency.symbol})` },
-                        grid: { color: 'rgba(0,0,0,0.1)' },
+                        title: { 
+                            display: true, 
+                            text: `Сума (${currency.symbol})`,
+                            color: textColor,
+                            font: { family: "'Inter', sans-serif", weight: '600' }
+                        },
                         ticks: {
+                            color: textColor,
+                            font: { family: "'Inter', sans-serif" },
                             callback: (value) => this.formatCurrency(value, currency, true)
-                        }
+                        },
+                        grid: { color: gridColor }
                     }
                 },
                 interaction: { intersect: false, mode: 'index' },
@@ -519,69 +569,57 @@ class App {
 // Additional Global functions
 function exportToCSV() {
     const table = document.getElementById('projectionTable');
-    if(!table) return;
+    if (!table) return;
     const rows = Array.from(table.querySelectorAll('tr'));
+    if (rows.length === 0) return;
     
-    let csv = rows.map(row => 
+    // UTF-8 BOM (\uFEFF) для коректного відображення кирилиці в MS Excel та Google Sheets
+    let csvContent = '\uFEFF' + rows.map(row => 
         Array.from(row.querySelectorAll('th, td'))
-            .map(cell => cell.textContent.trim())
-            .join(',')
-    ).join('\n');
+            .map(cell => {
+                const text = cell.textContent.trim().replace(/\s+/g, ' ');
+                return `"${text.replace(/"/g, '""')}"`;
+            })
+            .join(';')
+    ).join('\r\n');
     
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'salary_projection.csv';
+    a.download = `salary_projection_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 }
 
 function printResults() {
-    const resultsContent = document.getElementById('resultsSection');
-    if(!resultsContent) return;
-    const printWindow = window.open('', '_blank');
-    
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>Прогноз зарплати</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background-color: #f2f2f2; }
-                    .card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; }
-                </style>
-            </head>
-            <body>
-                <h1>Прогноз зарплати</h1>
-                ${resultsContent.innerHTML}
-            </body>
-        </html>
-    `);
-    
-    printWindow.document.close();
-    printWindow.print();
+    window.print();
 }
 
 // PDF Export function
 function generatePDF() {
     const element = document.getElementById('resultsSection');
+    if (!element) return;
+
     const opt = {
         margin:       0.5,
-        filename:     'salary_projection_report.pdf',
+        filename:     `salary_projection_${new Date().toISOString().slice(0, 10)}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2 },
         jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
     
-    // Add temporary class for PDF styling if needed, or just let html2pdf handle it
-    const btn = document.getElementById('downloadPdfBtn');
-    btn.style.display = 'none'; // hide button in PDF
+    // Приховуємо панель кнопок під час формування PDF
+    const actionsPanel = element.querySelector('.actions-panel');
+    if (actionsPanel) actionsPanel.style.display = 'none';
 
     html2pdf().set(opt).from(element).save().then(() => {
-        btn.style.display = 'inline-block'; // restore button
+        if (actionsPanel) actionsPanel.style.display = 'flex';
+    }).catch(err => {
+        console.error('PDF export error:', err);
+        if (actionsPanel) actionsPanel.style.display = 'flex';
     });
 }
 
@@ -589,10 +627,20 @@ function generatePDF() {
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new App();
     
-    // Attach PDF export to the new button
+    // Attach Export Actions
     const downloadPdfBtn = document.getElementById('downloadPdfBtn');
-    if(downloadPdfBtn) {
+    if (downloadPdfBtn) {
         downloadPdfBtn.addEventListener('click', generatePDF);
+    }
+    
+    const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+    if (downloadCsvBtn) {
+        downloadCsvBtn.addEventListener('click', exportToCSV);
+    }
+
+    const printBtn = document.getElementById('printBtn');
+    if (printBtn) {
+        printBtn.addEventListener('click', printResults);
     }
     
     // Web App (PWA) ServiceWorker Registration

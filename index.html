@@ -182,9 +182,15 @@
                     <canvas id="salaryChart" width="800" height="400"></canvas>
                 </div>
 
-                <div style="text-align: center; margin-top: 30px;">
-                    <button id="downloadPdfBtn" class="calculate-btn" style="width: auto; padding: 12px 30px;">
-                        <i class="fas fa-file-pdf"></i> Зберегти звіт у PDF
+                <div class="actions-panel">
+                    <button type="button" id="downloadPdfBtn" class="action-btn btn-pdf" title="Завантажити звіт у PDF">
+                        <i class="fas fa-file-pdf"></i> Зберегти у PDF
+                    </button>
+                    <button type="button" id="downloadCsvBtn" class="action-btn btn-csv" title="Експортувати дані таблиці у формат CSV для Excel">
+                        <i class="fas fa-file-csv"></i> Експорт у CSV
+                    </button>
+                    <button type="button" id="printBtn" class="action-btn btn-print" title="Роздрукувати звіт">
+                        <i class="fas fa-print"></i> Роздрукувати
                     </button>
                 </div>
             </div>
